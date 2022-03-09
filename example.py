@@ -1,12 +1,20 @@
 #!/usr/bin/env python
+import rospy
 import cv2
 import numpy as np
-
+from std_msgs.msg import Int64
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 # img = cv2.imread("images/example.jpg")
-cap = cv2.VideoCapture(1)
+bridge = CvBridge()
+rospy.init_node("image_pub")
+opencv = rospy.Publisher("opencv",Image,queue_size=1)
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
+rate = rospy.Rate(10)
 while True:
    _, frame = cap.read()
+   #cv2.imwrite("images/screen_shot.jpg",frame)
    gray_img = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
    #print(frame.shape)
    canny = cv2.Canny(gray_img,200,250)
@@ -27,11 +35,17 @@ while True:
    if lines is not None:
       for line in lines:
          x1, y1, x2, y2 = line[0]
-         cv2.line(line_img,(x1,y1),(x2,y2),[0,0,255],5)
-   result_img = cv2.addWeighted(line_img,0.8, frame, 1. , 0. )
-   cv2.imshow("img",line_img)
-   cv2.imshow("grey",result_img)
-   if cv2.waitKey(25) & 0xFF == ord('a'):
+         cv2.line(line_img,(x1,y1),(x2,y2),[255,255,255],5)
+   result_img = cv2.addWeighted(line_img,0.8, frame, 1. , 0)
+   pub_img = bridge.cv2_to_imgmsg(line_img,"bgr8")
+   opencv.publish(pub_img)
+   #print(lines[0].reshape(4))
+   #print(lines[1].reshape(4))
+   #text = open("video/text.txt","w")
+   cv2.imshow("line",line_img)
+   cv2.imshow("result",result_img)
+   rate.sleep()
+   if cv2.waitKey(27) & 0xFF == ord('a'):
       exit()
 
 cap.release()
