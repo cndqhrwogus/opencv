@@ -41,11 +41,12 @@ def display_lines(img,lines):
     if lines is not None:
         for line in lines:
             for x1, y1, x2, y2 in line:
-                cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),10)
+                cv2.line(line_image, (x1,y1),(x2,y2),(0,0,255),10)
     return line_image
 
 def make_points(image, line):
     slope, intercept = line
+    #print(line)
     y1 = int(image.shape[0])
     y2 = int(y1*3.0/5)      
     x1 = int((y1 - intercept)/slope)
@@ -67,20 +68,26 @@ def average_slope_intercept(image, lines):
                 left_fit.append((slope, intercept))
             else:
                 right_fit.append((slope, intercept))
-    left_fit_average  = np.average(left_fit, axis=0)
-    right_fit_average = np.average(right_fit, axis=0)
-    left_line  = make_points(image, left_fit_average)
-    right_line = make_points(image, right_fit_average)
-    averaged_lines = np.array([left_line, right_line])
-    print(averaged_lines)
-    return averaged_lines
-
+    if left_fit:
+        left_fit_average  = np.average(left_fit, axis=0)
+        left_line  = make_points(image, left_fit_average)
+    if right_fit:
+        right_fit_average = np.average(right_fit, axis=0)
+        right_line = make_points(image, right_fit_average)
+    if left_fit and right_fit:
+        averaged_lines = np.array([left_line, right_line])
+        return averaged_lines
+    else:
+        return None
+        
 def center_line(image, lines):
+    if lines is None:
+        return None
     x1_1, y1_1, x2_1, y2_1 = lines[0].reshape(4)
     x1_2, y1_2, x2_2, y2_2 = lines[1].reshape(4)
     
-    ym1 = y1_1
-    ym2 = y2_1
+    ym1 = y1_2
+    ym2 = y2_2
     
     xm1 = int((x1_1 + x1_2)/2)
     xm2 = int((x2_1 + x2_2)/2)
