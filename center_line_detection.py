@@ -24,7 +24,7 @@ def region_of_interest(canny):
     triangle = np.array([[
     (50, height),
     (320, 110),
-    (500, height),]], np.int64)
+    (500, height),]], np.int32)
     cv2.fillPoly(mask, triangle, 255)
     masked_image = cv2.bitwise_and(canny, mask)
     return masked_image
@@ -52,8 +52,6 @@ def make_points(image, line):
     x2 = int((y2 - intercept)/slope)
     return [[x1, y1, x2, y2]]
  
-global_left_fit_average = []
-global_right_fit_average = []
 def average_slope_intercept(image, lines):
     left_fit = []
     right_fit = []
@@ -77,25 +75,25 @@ def average_slope_intercept(image, lines):
     print(averaged_lines)
     return averaged_lines
 
-# def center_line(image, lines):
-#     x1_1, y1_1, x2_1, y2_1 = lines[0].reshape(4)
-#     x1_2, y1_2, x2_2, y2_2 = lines[1].reshape(4)
+def center_line(image, lines):
+    x1_1, y1_1, x2_1, y2_1 = lines[0].reshape(4)
+    x1_2, y1_2, x2_2, y2_2 = lines[1].reshape(4)
     
-#     ym1 = y1_1
-#     ym2 = y2_1
+    ym1 = y1_1
+    ym2 = y2_1
     
-#     xm1 = int((x1_1 + x1_2)/2)
-#     xm2 = int((x2_1 + x2_2)/2)
+    xm1 = int((x1_1 + x1_2)/2)
+    xm2 = int((x2_1 + x2_2)/2)
     
-#     cv2.line(image,
-#              (xm1,ym1),
-#              (xm2,ym2),
-#              color = (255,255,255),
-#              thickness = 10)
+    cv2.line(image,
+             (xm1,ym1),
+             (xm2,ym2),
+             color = (255,255,255),
+             thickness = 10)
     
-#     return image
+    return image
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
 while True:
     _, frame = cap.read()
@@ -104,7 +102,7 @@ while True:
     lines = houghLines(cropped_canny)
     averaged_lines = average_slope_intercept(frame, lines)
     line_image = display_lines(frame, averaged_lines)
-    #center_image = center_line(line_image, averaged_lines)
+    center_image = center_line(line_image, averaged_lines)
     combo_image = addWeighted(frame, line_image)
     cv2.imshow("result", combo_image)
     cv2.imshow("1",line_image)
