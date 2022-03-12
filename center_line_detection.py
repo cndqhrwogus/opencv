@@ -40,18 +40,27 @@ def display_lines(img,lines):
     line_image = np.zeros_like(img)
     if lines is not None:
         for line in lines:
-            for x1, y1, x2, y2 in line:
-                cv2.line(line_image, (x1,y1),(x2,y2),(0,0,255),10)
+            try:
+                for x1, y1, x2, y2 in line:
+                    cv2.line(line_image, (x1,y1),(x2,y2),(0,0,255),10)
+            except OverflowError:
+                print("error")
+            except TypeError:
+                print("error")
     return line_image
+            
 
 def make_points(image, line):
     slope, intercept = line
     #print(line)
-    y1 = int(image.shape[0])
-    y2 = int(y1*3.0/5)      
-    x1 = int((y1 - intercept)/slope)
-    x2 = int((y2 - intercept)/slope)
-    return [[x1, y1, x2, y2]]
+    try:
+        y1 = int(image.shape[0])
+        y2 = int(y1*3.0/5)      
+        x1 = int((y1 - intercept)/slope)
+        x2 = int((y2 - intercept)/slope)
+        return [[x1, y1, x2, y2]]
+    except OverflowError:
+        print("don't found line")
  
 def average_slope_intercept(image, lines):
     left_fit = []
@@ -79,7 +88,7 @@ def average_slope_intercept(image, lines):
         return averaged_lines
     else:
         return None
-        
+
 def center_line(image, lines):
     if lines is None:
         return None
@@ -91,13 +100,14 @@ def center_line(image, lines):
     
     xm1 = int((x1_1 + x1_2)/2)
     xm2 = int((x2_1 + x2_2)/2)
-    
-    cv2.line(image,
-             (xm1,ym1),
-             (xm2,ym2),
-             color = (255,255,255),
-             thickness = 10)
-    
+    try:
+        cv2.line(image,
+                 (xm1,ym1),
+                 (xm2,ym2),
+                 color = (255,255,255),
+                 thickness = 10)
+    except OverflowError:
+        print("don't find line")
     return image
 
 cap = cv2.VideoCapture(0)
