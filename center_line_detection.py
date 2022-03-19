@@ -14,23 +14,23 @@ def canny(img):
     return canny
 
 def rectangle_line(img):
-    rectangle_img = cv2.rectangle(img,(340,420),(850,535),(255,255,255),3)
+    rectangle_img = cv2.rectangle(img,(450,410),(760,480),(255,255,255),3)
     return rectangle_img
 
 def region_of_interest(canny):
     height = canny.shape[0]
     width = canny.shape[1]
     mask = np.zeros_like(canny)
-    # rectangle = np.array([[ 
-    # (290, 540),
-    # (557, 380),
-    # (650, 380),
-    # (860, 540),]], np.int32)
-    rectangle = np.array([[ #test
-    (340, 540),
-    (340, 420),
-    (850, 420),
-    (850, 540),]], np.int32)
+    rectangle = np.array([[ 
+    (290, 540),
+    (557, 390),
+    (650, 390),
+    (860, 540),]], np.int32)
+    # rectangle = np.array([[ #test
+    # (340, 540),
+    # (340, 420),
+    # (850, 420),
+    # (850, 540),]], np.int32)
     masked = cv2.fillPoly(mask, rectangle, 255)
     cv2.imshow("asddasd",masked)
     masked_image = cv2.bitwise_and(canny, masked)
@@ -61,10 +61,10 @@ def display_lines(img,lines):
 def make_points(image, line):
     slope, intercept = line
     try:
-        #y1 = 540
-        #y2 = 420
-        y1 = 490
-        y2 = 470      
+        y1 = 540
+        y2 = 390
+        # y1 = 490
+        # y2 = 470      
         x1 = int((y1 - intercept)/slope)
         x2 = int((y2 - intercept)/slope)
         return [[x1, y1, x2, y2]]
@@ -74,11 +74,9 @@ def make_points(image, line):
 def average_slope_intercept(image, lines):
     left_fit = []
     right_fit = []
-    print(lines)
     for line in lines:
         x1,y1,x2,y2 = line.reshape(4)
         fit = np.polyfit((x1,x2), (y1,y2), 1)
-        print(fit)
         slope = fit[0]
         intercept = fit[1]
         if not(np.abs(slope)*180<95):
@@ -102,16 +100,18 @@ def center_line(image, lines):
     try:
         x1_1, y1_1, x2_1, y2_1 = lines[0].reshape(4)
         x1_2, y1_2, x2_2, y2_2 = lines[1].reshape(4)
-    
-        ym1 = y1_2
-        ym2 = y2_2
+        print(lines)
+        # ym1 = y1_2
+        # ym2 = y2_2
+        ym1 = 480 
+        ym2 = 410
     
         xm1 = int((x1_1 + x1_2)/2)
         xm2 = int((x2_1 + x2_2)/2)
         cv2.line(image,
                  (xm1,ym1),
                  (xm2,ym2),
-                 color = (255,255,255),
+                 color = (255,0,0),
                  thickness = 3)
     except OverflowError:
         print("don't find line")
