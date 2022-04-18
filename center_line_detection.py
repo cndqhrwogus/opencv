@@ -30,7 +30,7 @@ def region_of_interest(canny):
     return masked_image
 
 def houghLines(cropped_canny):
-    return cv2.HoughLinesP(cropped_canny, 2, np.pi/180, 100, 
+    return cv2.HoughLinesP(cropped_canny, 1, np.pi/180, 100, 
         np.array([]), minLineLength=40, maxLineGap=5)
 
 def addWeighted(frame, line_image):
@@ -121,7 +121,7 @@ while True:
     line_image = display_lines(frame, averaged_lines)
     center_image = center_line(line_image, averaged_lines)
     combo_image = addWeighted(frame, line_image)
-    cv2.imshow("result", combo_image)
+    cv2.imshow("result", center_image)
     cv2.imshow("1",line_image)
     if cv2.waitKey(1) & 0xFF == ord('a'):
         break
