@@ -5,25 +5,27 @@ import os
 from matplotlib import pyplot as plt , cm, colors
 cap = cv2.VideoCapture('test3.mp4')
 def color_thresh(frame):
-        hls = cv2.cvtColor(frame, cv2.COLOR_RGB2HLS)
-        s_channel = hls[:,:,2]
-        gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-        sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0) # Take the derivative in x
-        abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
-        scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
+        hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+        #gray = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        #sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0) # Take the derivative in x
+        #abs_sobelx = np.absolute(sobelx) # Absolute x derivative to accentuate lines away from horizontal
+        #scaled_sobel = np.uint8(255*abs_sobelx/np.max(abs_sobelx))
         thresh_min = 10
         thresh_max = 200
-        sxbinary = np.zeros_like(scaled_sobel)
-        sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
-        s_thresh_min = 10
-        s_thresh_max = 255
-        s_binary = np.zeros_like(s_channel)
-        s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 255
-        color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary)) * 255
-        combined_binary = np.zeros_like(sxbinary)
-        combined_binary[(s_binary == 1) | (sxbinary == 1)] = 255
-        cv2.imshow("zxvzxv",s_binary)
-        return combined_binary
+        #sxbinary = np.zeros_like(scaled_sobel)
+        #sxbinary[(scaled_sobel >= thresh_min) & (scaled_sobel <= thresh_max)] = 1
+        s_binary = np.zeros_like(hsv)
+        s_binary = cv2.inRange(hsv,(0,0,100),(179,255,255))
+        mask = cv2.bitwise_and(frame,frame,mask=s_binary)
+        gray = cv2.cvtColor(mask,cv2.COLOR_BGR2GRAY)
+        _,thresh = cv2.threshold(gray,100,255,cv2.THRESH_BINARY)
+        #color_binary = np.dstack(( np.zeros_like(sxbinary), sxbinary, s_binary)) * 255
+        #combined_binary = np.zeros_like(sxbinary)
+        #combined_binary[(s_binary == 255) | (sxbinary == 1)] = 255
+        blur = cv2.GaussianBlur(thresh,(3,3),0)
+        canny = cv2.Canny(blur,30,90)
+        cv2.imshow("zxvzxv",canny)
+        return canny
 def warped_image(frame):
     img_size = (frame.shape[1],frame.shape[0])
     src =  np.array([[ #top_left,top_right,bottom_left,bottom_right
@@ -49,6 +51,8 @@ def plotHistogram(image):
     midpoint = np.int(histogram.shape[0]/2)
     left = np.argmax(histogram[:midpoint])
     right = np.argmax(histogram[midpoint:])+midpoint
+    plt.xlim(0,1280)
+    plt.ylim(0,720)
     plt.xlabel("Image X coordinates")
     plt.ylabel("number of white pixels")
     # plt.plot(histogram)
@@ -57,16 +61,16 @@ def plotHistogram(image):
 def slide_window(img,histogram):
     out_img = np.dstack((img,img,img))*255
     midpoint = np.int(histogram.shape[0]//2)
-    left = np.argmax(histogram[:midpoint])
-    right = np.argmax(histogram[midpoint:])+midpoint
-    nwindows = 9
+    left = np.argmax(histogram[:midpoint]) #~640
+    right = np.argmax(histogram[midpoint:])+midpoint # 640~
+    nwindows = 7
     window_height = np.int(img.shape[0]/nwindows)
     nonzero = img.nonzero()
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
     left_current = left
     right_current = right
-    margin = 80
+    margin = 100
     minpix = 50
     left_lane = []
     right_lane = []
@@ -78,13 +82,11 @@ def slide_window(img,histogram):
         win_right_low = right_current - margin #1001
         win_right_high = right_current + margin #1201
         cv2.rectangle(out_img,(win_left_low,win_y_low),(win_left_high,win_y_high),(0,255,0),2) 
-        print("2",win_left_low,win_y_low,win_left_high,win_y_high)
-        #cv2.rectangle(out_img,(win_right_low,win_y_low),(win_right_high,win_y_high),(0,255,0),2)
+        cv2.rectangle(out_img,(win_right_low,win_y_low),(win_right_high,win_y_high),(0,255,0),2)
         left_inds = ((nonzeroy>=win_y_low)&(nonzeroy<win_y_high)&(nonzerox>=win_left_low)&(nonzerox<win_right_high)).nonzero()[0]
         right_inds = ((nonzeroy>=win_y_low)&(nonzeroy<win_y_high)&(nonzerox>=win_right_low)&(nonzerox<win_right_high)).nonzero()[0]
         left_lane.append(left_inds)
         right_lane.append(right_inds)
-        print(len(left_inds))
         if len(left_inds)>minpix:
             left_current = np.int(np.mean(nonzerox[left_inds]))
         if len(right_inds)>minpix:
@@ -112,8 +114,8 @@ def slide_window(img,histogram):
     plt.plot(right_fitx,ploty,color='yellow')
     plt.xlim(0,1280)
     plt.ylim(720,0)
-    # plt.show()
-    # plt.imshow(out_img)
+    plt.show()
+    plt.imshow(out_img)
     return ploty,left_fit,right_fit,ltx,rtx
 def general_search(img,left_fit,right_fit):
     nonzero = img.nonzero()
@@ -233,14 +235,13 @@ def addText(img, radius, direction, deviation, devDirection):
 def main():
     while True:
         _,frame = cap.read()
-        thresh = color_thresh(frame)
-        birdview, birdviewL, birdviewR, minverse = warped_image(thresh)
-        cv2.imshow("1",birdview)
+        birdview, birdviewL, birdviewR, minverse = warped_image(frame)
+        thresh = color_thresh(birdview)
         # hlsL,grayL,threshL,blurL,cannyL = color_thresh(birdviewL)
         # hlsR,grayR,threshR,blurR,cannyR = color_thresh(birdviewR)
-        hist = plotHistogram(birdview)
-        ploty,left_fit,right_fit,left_fitx,right_fitx=slide_window(birdview,hist)
-        draw = general_search(birdview,left_fit,right_fit)
+        hist = plotHistogram(thresh)
+        ploty,left_fit,right_fit,left_fitx,right_fitx=slide_window(thresh,hist)
+        draw = general_search(thresh,left_fit,right_fit)
         curveRad, curveDir = measure_lane_curvature(ploty,left_fitx,right_fitx)
         meanPts, result = draw_lane_lines(frame,thresh,minverse,draw)
         deviation, directionDev = offCenter(meanPts, frame)
