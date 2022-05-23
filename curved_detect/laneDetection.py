@@ -15,15 +15,15 @@ def processImage(inpImage):
     # result = cv2.bitwise_and(v,v,mask=mask)
     hls = cv2.cvtColor(inpImage,cv2.COLOR_BGR2HLS)
     gray = cv2.cvtColor(inpImage,cv2.COLOR_BGR2GRAY)
-    result = cv2.inRange(hls,(70,150,30),(110,230,130))
+    result = cv2.inRange(hls,(70,140,15),(110,230,50))
     mask = cv2.bitwise_and(result,gray)
-    ret, thresh = cv2.threshold(mask,160,255,cv2.THRESH_BINARY)
+    ret, thresh = cv2.threshold(mask,145,255,cv2.THRESH_BINARY)
     # thresh = cv2.inRange(result,210,240)
     blur = cv2.GaussianBlur(thresh,(21, 21), 0)
     canny = cv2.Canny(blur, 40, 60)
     # cv2.imshow("1",result)
-    # cv2.imshow("1",mask)
-    cv2.imshow("2",thresh)
+    cv2.imshow("1",result)
+    cv2.imshow("2",hls)
     # cv2.imshow("mask",thresh)
     # cv2.imshow("2",inpImage)
     # Display the processed images
@@ -41,11 +41,11 @@ def perspectiveWarp(inpImage):
     # Get image size
     img_size = (inpImage.shape[1], inpImage.shape[0])
 
-    # Perspective points to be warped (35,170) (280,170) (200,300) (200,10)
-    src = np.float32([[10,200],
-                      [300,200],
-                      [0, 240],
-                      [320, 240]])
+    # Perspective points to be warped (6, 240) (30 160) (255 240) (255 160)
+    src = np.float32([[6, 160],
+                      [280, 160],
+                      [6, 240],
+                      [280, 240]])
 
     # Window to be shown
     dst = np.float32([[0, 0],
@@ -109,22 +109,21 @@ def slide_window_search(binary_warped, histogram):
         rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 
         # A total of 9 windows will be used
-        nwindows = 9
+        nwindows = 6
         window_height = np.int(binary_warped.shape[0] / nwindows)
         nonzero = binary_warped.nonzero()
         nonzeroy = np.array(nonzero[0])
         nonzerox = np.array(nonzero[1])
         leftx_current = leftx_base
         rightx_current = rightx_base
-        margin = 20
+        margin = 40
         minpix = 50
         left_lane_inds = []
         right_lane_inds = []
-        # print("1",np.sum(histogram[:72]))
-        # print("2",np.sum(histogram[248:]))
-        # print("3",np.sum(histogram[85:205]))
-        if (np.sum(histogram[85:205]) < (np.sum(histogram[:72])+np.sum(histogram[248:]))) and 3000000>(np.sum(histogram[:72])+np.sum(histogram[248:]))>1000000 :
-        #### START - Loop to iterate through windows and search for lane lines #####
+        if ((np.sum(histogram[85:205]) < (np.sum(histogram[:72])+np.sum(histogram[248:]))) and (3000000>(np.sum(histogram[:72])+np.sum(histogram[248:]))>800000)):
+            # print("1",np.sum(histogram[:72]))
+            # print("2",np.sum(histogram[248:]))
+            # print("3",np.sum(histogram[85:205]))
             for window in range(nwindows):
                 win_y_low = binary_warped.shape[0] - (window + 1) * window_height
                 win_y_high = binary_warped.shape[0] - window * window_height
@@ -132,21 +131,16 @@ def slide_window_search(binary_warped, histogram):
                 win_xleft_high = leftx_current + margin
                 win_xright_low = rightx_current - margin
                 win_xright_high = rightx_current + margin
-                cv2.rectangle(out_img, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),
-                (0,255,0), 2)
-                cv2.rectangle(out_img, (win_xright_low,win_y_low), (win_xright_high,win_y_high),
-                (0,255,0), 2)
-                good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
-                (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
-                good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) &
-                (nonzerox >= win_xright_low) &  (nonzerox < win_xright_high)).nonzero()[0]
+                cv2.rectangle(out_img, (win_xleft_low, win_y_low), (win_xleft_high, win_y_high),(0,255,0), 2)
+                cv2.rectangle(out_img, (win_xright_low,win_y_low), (win_xright_high,win_y_high),(0,255,0), 2)
+                good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
+                good_right_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & (nonzerox >= win_xright_low) &  (nonzerox < win_xright_high)).nonzero()[0]
                 left_lane_inds.append(good_left_inds)
                 right_lane_inds.append(good_right_inds)
                 if len(good_left_inds) > minpix:
                     leftx_current = np.int(np.mean(nonzerox[good_left_inds]))
                 if len(good_right_inds) > minpix:
                     rightx_current = np.int(np.mean(nonzerox[good_right_inds]))
-            #### END - Loop to iterate through windows and search for lane lines #######
 
             left_lane_inds = np.concatenate(left_lane_inds)
             right_lane_inds = np.concatenate(right_lane_inds)
@@ -159,7 +153,6 @@ def slide_window_search(binary_warped, histogram):
             # Apply 2nd degree polynomial fit to fit curves
             left_fit = np.polyfit(lefty, leftx, 2)
             right_fit = np.polyfit(righty, rightx, 2)
-
 
             ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0])
             left_fitx = left_fit[0] * ploty**2 + left_fit[1] * ploty + left_fit[2]
@@ -192,7 +185,7 @@ def general_search(binary_warped, left_fit, right_fit):
     nonzero = binary_warped.nonzero()
     nonzeroy = np.array(nonzero[0])
     nonzerox = np.array(nonzero[1])
-    margin = 20
+    margin = 40
     left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy +
     left_fit[2] - margin)) & (nonzerox < (left_fit[0]*(nonzeroy**2) +
     left_fit[1]*nonzeroy + left_fit[2] + margin)))
@@ -271,9 +264,9 @@ def measure_lane_curvature(ploty, leftx, rightx):
     # Now our radius of curvature is in meters
     # print(left_curverad, 'm', right_curverad, 'm')
     # Decide if it is a left or a right curve
-    if leftx[0] - leftx[-1] > 60:
+    if rightx[0] - rightx[-1] >= 8:
         curve_direction = 'Left Curve'
-    elif leftx[-1] - leftx[0] > 60:
+    elif rightx[-1] - rightx[0] >= 8:
         curve_direction = 'Right Curve'
     else:
         curve_direction = 'Straight'
@@ -332,28 +325,20 @@ def offCenter(meanPts, inpFrame):
 ################################################################################
 #### START - FUNCTION TO ADD INFO TEXT TO FINAL IMAGE ##########################
 def addText(img,direction):
-
     font = cv2.FONT_HERSHEY_TRIPLEX
     cv2.putText(img,direction,(4,20),font,0.5,(0,255,0),1,cv2.LINE_AA)
-
+    try:
+        if sonar_range != 'safy': 
+            cv2.putText(img,sonar_range,(4,40),font,0.5,(0,255,0),1,cv2.LINE_AA)
+    except NameError:
+        print('sonar not detecting')
     return img
-#### END - FUNCTION TO ADD INFO TEXT TO FINAL IMAGE ############################
-################################################################################
 
-################################################################################
-######## END - FUNCTIONS TO PERFORM IMAGE PROCESSING ###########################
-################################################################################
 
-################################################################################
-################################################################################
-################################################################################
-################################################################################
+def sonar_callback(data):
+    global sonar_range
+    sonar_range = data.data
 
-################################################################################
-######## START - MAIN FUNCTION #################################################
-################################################################################
-
-# Read the input image
 image = cv2.VideoCapture(0)
 image.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
 # image.set(cv2.CAP_PROP_FRAME_WIDTH,1280)
@@ -361,10 +346,10 @@ image.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
 bridge = CvBridge()
 pub = rospy.Publisher('lane_detect',String,queue_size=10)
 rospy.init_node('cam_detect')
+sonar_sub = rospy.Subscriber('/sonar_range',String,sonar_callback)
 ################################################################################
 #### START - LOOP TO PLAY THE INPUT IMAGE ######################################
 while True:
-    
     _, frame = image.read()
     frame = cv2.resize(frame,(320,240),cv2.INTER_AREA)
     # Apply perspective warping by calling the "perspectiveWarp()" function
@@ -392,9 +377,9 @@ while True:
     # plt.show()
     try:
         ploty, left_fit, right_fit, left_fitx, right_fitx = slide_window_search(thresh, hist)
+    
         # plt.plot(left_fit)
         # plt.show()
-
         draw_info = general_search(canny, left_fit, right_fit)
         
         # plt.show()
