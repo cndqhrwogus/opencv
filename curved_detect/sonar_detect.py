@@ -4,7 +4,7 @@ from geometry_msgs.msg import TransformStamped, Twist
 from sensor_msgs.msg import Range
 from std_msgs.msg import Bool, String, Float32
 import time
-class motor:
+class sonar:
     def sonar_callback(self,msg):
         self.sonar0 = msg.range
     def sonar_callback1(self,msg):
@@ -30,18 +30,18 @@ class motor:
         self.sonarSub0 = rospy.Subscriber("/pi_sonar/sonar_4",Range,self.sonar_callback4)
         Pub = rospy.Publisher("/sonar_range",String,queue_size=3)
         while not rospy.is_shutdown():
-            if (self.sonar0 <= 0.3) or (self.sonar2 <= 0.3):
+            if (self.sonar0 <= 0.5) or (self.sonar2 <= 0.5):
                 self.warning = 'RIGHT DETECT'
-            elif (self.sonar1<=0.3) or (self.sonar4<=0.3):
+            elif (self.sonar1<=0.5) or (self.sonar4<=0.5):
                 self.warning = 'LEFT DETECT'
-            elif self.sonar3 <= 0.3:
+            elif self.sonar3 <= 0.5:
                 self.warning = 'FRONT DETECT'
             else:
-                self.warning = 'SAFY'
+                self.warning = 'safy'
             Pub.publish(self.warning)
-            time.sleep(0.1)
+            time.sleep(0.01)
         rospy.spin()
 
 if __name__ == '__main__':
-    node = motor()
+    node = sonar()
     node.run()
