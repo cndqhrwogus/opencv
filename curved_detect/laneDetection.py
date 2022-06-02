@@ -2,33 +2,35 @@
 import cv2
 import numpy as np
 import rospy
+import time
 from matplotlib import pyplot as plt , cm, colors
 from std_msgs.msg import String, Float32
 from cv_bridge import CvBridge
+
 def processImage(inpImage):
     # mask = cv2.inRange(inpImage,(210,210,190),(240,240,225))
     # hsv = cv2.cvtColor(inpImage,cv2.COLOR_BGR2HSV)
-    # h,s,v = cv2.split(hsv)
+    # h,s,v = cv2.splict(hsv)
     
     # yuv = cv2.cvtColor(inpImage,cv2.COLOR_BGR2CMY)
     # y,u,v1 = cv2.split(yuv)
     # result = cv2.bitwise_and(v,v,mask=mask)
     hls = cv2.cvtColor(inpImage,cv2.COLOR_BGR2HLS)
     gray = cv2.cvtColor(inpImage,cv2.COLOR_BGR2GRAY)
-    result = cv2.inRange(hls,(70,140,15),(110,230,50))
+    result = cv2.inRange(hls,(70,140,15),(110,230,70))
     mask = cv2.bitwise_and(result,gray)
     ret, thresh = cv2.threshold(mask,145,255,cv2.THRESH_BINARY)
     # thresh = cv2.inRange(result,210,240)
     blur = cv2.GaussianBlur(thresh,(21, 21), 0)
     canny = cv2.Canny(blur, 40, 60)
     # cv2.imshow("1",result)
-    cv2.imshow("1",result)
-    cv2.imshow("2",hls)
+    # cv2.imshow("1",result)
+    # cv2.imshow("2",hls)
     # cv2.imshow("mask",thresh)
     # cv2.imshow("2",inpImage)
     # Display the processed images
 
-    return thresh, blur, canny
+    return thresh, canny
 #### END - FUNCTION TO PROCESS IMAGE ###########################################
 ################################################################################
 
@@ -43,9 +45,9 @@ def perspectiveWarp(inpImage):
 
     # Perspective points to be warped (6, 240) (30 160) (255 240) (255 160)
     src = np.float32([[6, 160],
-                      [280, 160],
+                      [305, 160],
                       [6, 240],
-                      [280, 240]])
+                      [305, 240]])
 
     # Window to be shown
     dst = np.float32([[0, 0],
@@ -328,8 +330,7 @@ def addText(img,direction):
     font = cv2.FONT_HERSHEY_TRIPLEX
     cv2.putText(img,direction,(4,20),font,0.5,(0,255,0),1,cv2.LINE_AA)
     try:
-        if sonar_range != 'safy': 
-            cv2.putText(img,sonar_range,(4,40),font,0.5,(0,255,0),1,cv2.LINE_AA)
+        cv2.putText(img,sonar_range,(4,40),font,0.5,(0,255,0),1,cv2.LINE_AA)
     except NameError:
         print('sonar not detecting')
     return img
@@ -338,6 +339,8 @@ def addText(img,direction):
 def sonar_callback(data):
     global sonar_range
     sonar_range = data.data
+    
+
 
 image = cv2.VideoCapture(0)
 image.set(cv2.CAP_PROP_FOURCC,cv2.VideoWriter_fourcc('M','J','P','G'))
@@ -362,7 +365,7 @@ while True:
     # Then assign their respective variables (img, hls, grayscale, thresh, blur, canny)
     # Provide this function with:
     # 1- an already perspective warped image to process (birdView)
-    thresh, blur, canny = processImage(birdView)
+    thresh,canny = processImage(birdView)
     #imgL, hlsL, grayscaleL, threshL, blurL, cannyL = processImage(birdViewL)
     #imgR, hlsR, grayscaleR, threshR, blurR, cannyR = processImage(birdViewR)
 
@@ -391,7 +394,11 @@ while True:
 
         
         deviation, directionDev = offCenter(meanPts, frame)
-        pub.publish(curveDir)
+        if sonar_range != 'safy':
+            curveDir = 'Emergency'
+            pub.publish(curveDir)
+        else:
+            pub.publish(curveDir)
         # print(deviation)
         # Adding text to our final image
         finalImg = addText(result,curveDir)
@@ -406,7 +413,11 @@ while True:
             curveDir = 'no line'
         finalImg = addText(frame,curveDir)
         cv2.imshow("Final",finalImg)
-        pub.publish(curveDir)
+        if sonar_range != 'safy':
+            curveDir = 'Emergency'
+            pub.publish(curveDir)
+        else:
+            pub.publish(curveDir)
     if cv2.waitKey(30) & 0xFF == ord('c'):
             break
 
